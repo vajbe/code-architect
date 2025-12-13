@@ -3,38 +3,33 @@ package main
 import (
 	"log"
 
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/IBM/sarama"
 )
 
 func SendMessage(message string, topic string) error {
-	err := producer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-		Value:          []byte(message),
-	}, nil)
-
-	if err != nil {
-		return err
+	msg := &sarama.ProducerMessage{
+		Topic: topic,
+		Value: sarama.StringEncoder(message),
 	}
+
+	producer.Input() <- msg
 
 	return nil
 }
 
 func DeliveryHandler() {
 	go func() {
-		for e := range producer.Events() {
-			switch ev := e.(type) {
-			case *kafka.Message:
-				if ev.TopicPartition.Error != nil {
-					log.Println("Delivery failed: ", ev.TopicPartition.Error)
-				} else {
-					log.Println("Delivered message to ", ev.TopicPartition)
-				}
+		for {
+			select {
+			case msg := <-producer.Successes():
+				log.Println("Delivered message to", msg.Topic)
+			case err := <-producer.Errors():
+				log.Println("Delivery failed:", err)
 			}
 		}
 	}()
 }
 
 func CloseProducer() {
-	producer.Flush(10 * 1000)
 	producer.Close()
 }

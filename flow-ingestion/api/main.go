@@ -4,11 +4,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/IBM/sarama"
 )
 
 var (
-	producer *kafka.Producer
+	producer sarama.AsyncProducer
 	topic    string
 	err      error
 	broker   string
@@ -19,9 +19,11 @@ func Initialize() {
 	broker = "localhost:9092"
 	topic = "raw_events"
 
-	producer, err = kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers": broker,
-	})
+	config := sarama.NewConfig()
+	config.Producer.Return.Successes = true
+	config.Producer.Return.Errors = true
+
+	producer, err = sarama.NewAsyncProducer([]string{broker}, config)
 
 	if err != nil {
 		log.Fatal("Error starting kafka", err)
