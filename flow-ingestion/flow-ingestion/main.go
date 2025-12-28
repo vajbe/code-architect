@@ -1,12 +1,11 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 
 	"github.com/IBM/sarama"
-	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/elastic/go-elasticsearch/v8"
 )
 
 var (
@@ -45,5 +44,5 @@ func main() {
 	Initialize()
 	DeliveryHandler()
 
-	defer es.Close(context.Background())
+	// defer es.Close()
 }
