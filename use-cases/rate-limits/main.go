@@ -22,8 +22,6 @@ type CacheStore struct {
 	store map[string]*RateLimit
 }
 
-var store *CacheStore
-
 const MAX_LIMIT = 3
 
 func NewCacheStore() *CacheStore {
@@ -33,15 +31,34 @@ func NewCacheStore() *CacheStore {
 	}
 }
 
+func (cs *CacheStore) getLimiter(userId string) *RateLimit {
+
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
+	if limiter, exists := cs.store[userId]; exists {
+		return limiter
+	}
+
+	limiter := &RateLimit{
+		count:       0,
+		windowStart: time.Now(),
+		mu:          &sync.Mutex{},
+	}
+
+	cs.store[userId] = limiter
+	return limiter
+}
+
 func main() {
 	mux := http.NewServeMux()
-	store = NewCacheStore()
+	cacheStore := NewCacheStore()
 	server := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
 	}
 
-	mux.HandleFunc("/task", TaskHandler)
+	mux.HandleFunc("/task", TaskHandler(cacheStore))
 
 	go func() {
 		log.Println("Http server started:8080")
@@ -60,11 +77,3 @@ func main() {
 	log.Print("Server shutdown gracefully")
 
 }
-
-// - Allow N requests per second per user
-// - Reject excess requests
-// - Thread-safe implementation
-
-// timestamp for last update
-// current count
-// userId

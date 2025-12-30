@@ -12,7 +12,7 @@ func SendBulk() {
 		// Timeout: 5 * time.Second,
 	}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10; i++ {
 		log.Println("Sending request ", i)
 		req, err := http.NewRequest(
 			http.MethodGet,
