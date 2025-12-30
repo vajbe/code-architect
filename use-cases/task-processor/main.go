@@ -80,5 +80,4 @@ func main() {
 	defer cancel()
 	server.Shutdown(ctx)
 	log.Println("Server gracefully stopped")
-
 }

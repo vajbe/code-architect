@@ -3,14 +3,13 @@ package main
 import (
 	"log"
 	"net/http"
-	"time"
 )
 
 func SendBulk() {
-	time.Sleep(5 * time.Second)
+	// time.Sleep(5 * time.Second)
 
 	client := &http.Client{
-		Timeout: 5 * time.Second,
+		// Timeout: 5 * time.Second,
 	}
 
 	for i := 0; i < 1000; i++ {
@@ -25,7 +24,7 @@ func SendBulk() {
 			continue
 		}
 
-		req.Header.Set("userId", "0001")
+		req.Header.Set("userId", "0002")
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -36,4 +35,8 @@ func SendBulk() {
 		// IMPORTANT
 		resp.Body.Close()
 	}
+}
+
+func main() {
+	SendBulk()
 }
