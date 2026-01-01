@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -13,6 +14,7 @@ func NewCacheStore() *CacheStore {
 		mu:   &sync.RWMutex{},
 		ctx:  ctx, cancel: cancel,
 	}
+	c.wg.Add(1)
 	go c.cleanUpJob()
 	return c
 }
@@ -46,6 +48,7 @@ func (cs *CacheStore) Get(key string) (string, bool) {
 }
 
 func (cs *CacheStore) cleanUpJob() {
+	defer cs.wg.Done()
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	for {
@@ -59,12 +62,13 @@ func (cs *CacheStore) cleanUpJob() {
 			}
 			cs.mu.Unlock()
 		case <-cs.ctx.Done():
+			fmt.Println("Clean up job stopped")
 			return
 		}
 	}
-
 }
 
 func (cs *CacheStore) Stop() {
 	cs.cancel()
+	cs.wg.Wait()
 }

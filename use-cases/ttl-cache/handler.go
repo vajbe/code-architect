@@ -3,21 +3,16 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
-type SetCacheRequest struct {
-	Key       string `json:"key"`
-	Value     string `json:"value"`
-	ExpiresAt string `json:"ttl"`
+func NewCacheServer(store *CacheStore) *CacheServer {
+	return &CacheServer{
+		store: store,
+	}
 }
 
-type SetCacheResponse struct {
-	Err     string `json:"err,omitempty"`
-	Status  int    `json:"status"`
-	Message string `json:"message"`
-}
-
-func SetCacheHandler(w http.ResponseWriter, r *http.Request) {
+func (cs *CacheServer) SetCacheHandler(w http.ResponseWriter, r *http.Request) {
 
 	typ := r.Method
 
@@ -38,6 +33,20 @@ func SetCacheHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer r.Body.Close()
 
+		ttl, err := time.ParseDuration(requestBody.ExpiresAt)
+		if err != nil {
+			res := &SetCacheResponse{
+				Err:     err.Error(),
+				Status:  http.StatusBadRequest,
+				Message: `Invalid TTL format`,
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(res)
+			return
+		}
+
+		cs.store.Set(requestBody.Key, requestBody.Value, ttl)
+
 		res := &SetCacheResponse{
 			Status:  http.StatusOK,
 			Message: "Successfully key added",
@@ -51,6 +60,18 @@ func SetCacheHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetCachehandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Get cache handler"))
+func (cs *CacheServer) GetCachehandler(w http.ResponseWriter, r *http.Request) {
+	key := r.URL.Query().Get("key")
+	if key == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Missing 'key' query parameter"))
+		return
+	}
+	value, ok := cs.store.Get(key)
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Key not found"))
+		return
+	}
+	w.Write([]byte(value))
 }

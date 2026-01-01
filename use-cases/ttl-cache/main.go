@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 const (
@@ -11,27 +15,41 @@ const (
 
 var (
 	server *http.Server
+	mx     *http.ServeMux
 )
 
-func Initialize() {
-	mx := http.NewServeMux()
+func Initialize(cs *CacheStore) {
+	mx = http.NewServeMux()
+	cacheServer := NewCacheServer(cs)
 
-	mx.HandleFunc("POST /api/set", SetCacheHandler)
-	mx.HandleFunc("GET /api/get", GetCachehandler)
+	mx.HandleFunc("POST /api/set", cacheServer.SetCacheHandler)
+	mx.HandleFunc("GET /api/get", cacheServer.GetCachehandler)
 	server = &http.Server{
-		Addr:    ":8080",
+		Addr:    Addr,
 		Handler: mx,
 	}
 
 	log.Println("Server started at", Addr)
 
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatalln("Server stopped unexpectedly Err: ", err.Error())
-	}
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalln("Server stopped unexpectedly Err: ", err.Error())
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
+	<-stop
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	server.Shutdown(ctx)
+	log.Println("Server shutdown gracefully...")
+
 }
 
 func main() {
-	// cs := NewCacheStore()
-	// cs.data["Vivek"]
-	Initialize()
+	cs := NewCacheStore()
+	Initialize(cs)
+	defer cs.Stop()
 }
