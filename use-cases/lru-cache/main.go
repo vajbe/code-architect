@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+	"sync"
+)
+
 const MAX_CACHE_LIMIT = 2
 
 func NewLRUCache(capacity int) *LRUCache {
@@ -9,10 +14,11 @@ func NewLRUCache(capacity int) *LRUCache {
 	tail.prev = head
 
 	return &LRUCache{
-		cache:    make(map[string]CacheNode),
+		cache:    make(map[string]*CacheNode),
 		head:     head,
 		tail:     tail,
 		capacity: capacity,
+		mu:       &sync.RWMutex{},
 	}
 }
 
@@ -29,10 +35,13 @@ func (lr *LRUCache) remove(node *CacheNode) {
 }
 
 func (lr *LRUCache) Get(key string) (string, bool) {
+	lr.mu.Lock()
+	defer lr.mu.Unlock()
 	data, ok := lr.cache[key]
+
 	if ok {
-		lr.remove(&data)
-		lr.addToFront(&data)
+		lr.remove(data)
+		lr.addToFront(data)
 		return data.value, true
 	} else {
 		return "", false
@@ -41,13 +50,15 @@ func (lr *LRUCache) Get(key string) (string, bool) {
 func (lr *LRUCache) Put(key string, value string) {
 
 	// check if exists
-
+	lr.mu.Lock()
 	cacheEntry, ok := lr.cache[key]
+	defer lr.mu.Unlock()
 
 	if ok {
 		cacheEntry.value = value
-		lr.remove(&cacheEntry)
-		lr.addToFront(&cacheEntry)
+
+		lr.remove(cacheEntry)
+		lr.addToFront(cacheEntry)
 	} else {
 		// check if full capacity
 		if len(lr.cache) == lr.capacity {
@@ -61,7 +72,7 @@ func (lr *LRUCache) Put(key string, value string) {
 			value: value,
 		}
 		lr.addToFront(newNode)
-		lr.cache[key] = *newNode
+		lr.cache[key] = newNode
 	}
 
 }
@@ -69,4 +80,5 @@ func (lr *LRUCache) Put(key string, value string) {
 func main() {
 	cs := NewLRUCache(MAX_CACHE_LIMIT)
 
+	fmt.Println(cs.cache)
 }
