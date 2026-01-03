@@ -12,5 +12,5 @@ type LRUCache struct {
 	head     *CacheNode
 	tail     *CacheNode
 	capacity int
-	mu       *sync.RWMutex
+	mu       sync.RWMutex
 }
