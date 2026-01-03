@@ -1,84 +1,34 @@
 package main
 
 import (
-	"fmt"
-	"sync"
+	"log"
+	"net/http"
 )
 
-const MAX_CACHE_LIMIT = 2
+const (
+	Addr string = ":8080"
+)
 
-func NewLRUCache(capacity int) *LRUCache {
-	head := &CacheNode{}
-	tail := &CacheNode{}
-	head.next = tail
-	tail.prev = head
+func InitializeServer() {
 
-	return &LRUCache{
-		cache:    make(map[string]*CacheNode),
-		head:     head,
-		tail:     tail,
-		capacity: capacity,
-		mu:       &sync.RWMutex{},
+	mux := http.NewServeMux()
+	server := &http.Server{
+		Addr:    Addr,
+		Handler: mux,
 	}
-}
 
-func (lr *LRUCache) addToFront(entryNode *CacheNode) {
-	entryNode.next = lr.head.next
-	entryNode.prev = lr.head
-	lr.head.next.prev = entryNode
-	lr.head.next = entryNode
-}
+	cs := NewCacheServer()
 
-func (lr *LRUCache) remove(node *CacheNode) {
-	node.prev.next = node.next
-	node.next.prev = node.prev
-}
+	mux.HandleFunc("GET /api/get/{key}", cs.GetCacheHandler)
+	mux.HandleFunc("POST /api/put", cs.PostCacheHandler)
 
-func (lr *LRUCache) Get(key string) (string, bool) {
-	lr.mu.Lock()
-	defer lr.mu.Unlock()
-	data, ok := lr.cache[key]
+	log.Println("Server started at ", Addr)
 
-	if ok {
-		lr.remove(data)
-		lr.addToFront(data)
-		return data.value, true
-	} else {
-		return "", false
-	}
-}
-func (lr *LRUCache) Put(key string, value string) {
-
-	// check if exists
-	lr.mu.Lock()
-	cacheEntry, ok := lr.cache[key]
-	defer lr.mu.Unlock()
-
-	if ok {
-		cacheEntry.value = value
-
-		lr.remove(cacheEntry)
-		lr.addToFront(cacheEntry)
-	} else {
-		// check if full capacity
-		if len(lr.cache) == lr.capacity {
-			lru := lr.tail.prev
-			lr.remove(lru)
-			delete(lr.cache, lru.key)
-		}
-
-		newNode := &CacheNode{
-			key:   key,
-			value: value,
-		}
-		lr.addToFront(newNode)
-		lr.cache[key] = newNode
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalln("Error occurred while starting server; err:", err.Error())
 	}
 
 }
-
 func main() {
-	cs := NewLRUCache(MAX_CACHE_LIMIT)
-
-	fmt.Println(cs.cache)
+	InitializeServer()
 }
