@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 )
 
@@ -49,7 +48,6 @@ func (cs *CacheServer) GetCacheHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cs *CacheServer) PostCacheHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Inside set")
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
 	var req *CacheSetRequest
