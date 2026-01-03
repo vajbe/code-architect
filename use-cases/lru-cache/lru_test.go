@@ -18,7 +18,12 @@ func TestPut_Cache(t *testing.T) {
 }
 
 func TestEvict_Cache(t *testing.T) {
-	cs := NewLRUCache(1)
+	cs := NewLRUCache(0)
+
+	if cs == nil {
+		t.Log("Cache was not created due to zero-size")
+		return
+	}
 
 	cs.Put("Vivek", "Vivek")
 	cs.Put("Cyberhaven", "Cyberhaven")

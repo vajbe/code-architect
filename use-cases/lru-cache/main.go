@@ -1,16 +1,20 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 const (
 	Addr string = ":8080"
 )
 
-func InitializeServer() {
-
+func InitializeAndStartServer() {
 	mux := http.NewServeMux()
 	server := &http.Server{
 		Addr:    Addr,
@@ -24,11 +28,21 @@ func InitializeServer() {
 
 	log.Println("Server started at ", Addr)
 
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalln("Error occurred while starting server; err:", err.Error())
-	}
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalln("Error occurred while starting server; err:", err.Error())
+		}
+	}()
 
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGABRT, syscall.SIGINT)
+	<-stop
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	server.Shutdown(ctx)
+	log.Println("Server shutdown gracefully")
 }
 func main() {
-	InitializeServer()
+	InitializeAndStartServer()
 }
