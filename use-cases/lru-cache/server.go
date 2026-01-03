@@ -50,8 +50,17 @@ func (cs *CacheServer) GetCacheHandler(w http.ResponseWriter, r *http.Request) {
 func (cs *CacheServer) PostCacheHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
-	var req *CacheSetRequest
-	decoder.Decode(&req)
-	w.WriteHeader(http.StatusOK)
+	var req CacheSetRequest
+	if err := decoder.Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
 	cs.store.Put(req.Key, req.Value)
+
+	res := &CacheGetResponse{
+		Message: `Success`,
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(res)
 }

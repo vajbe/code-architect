@@ -8,6 +8,10 @@ func NewLRUCache(capacity int) *LRUCache {
 	head.next = tail
 	tail.prev = head
 
+	if capacity <= 0 {
+		return nil
+	}
+
 	return &LRUCache{
 		cache:    make(map[string]*CacheNode),
 		head:     head,
