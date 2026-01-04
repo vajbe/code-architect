@@ -3,7 +3,7 @@ package main
 import "sync"
 
 type TaskStore struct {
-	mu    *sync.RWMutex
+	mu    sync.RWMutex
 	tasks map[string]*Task
 }
 

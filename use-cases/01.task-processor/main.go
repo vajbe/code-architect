@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -28,7 +27,6 @@ const MAX_WORKERS = 3
 func NewTaskStore() *TaskStore {
 	return &TaskStore{
 		tasks: make(map[string]*Task),
-		mu:    &sync.RWMutex{},
 	}
 }
 
