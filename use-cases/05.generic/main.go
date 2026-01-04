@@ -2,6 +2,7 @@ package main
 
 func main() {
 	// StackExample()
-
-	PanicExample()
+	// PanicExample()
+	// SorterExample()
+	InterExample()
 }
