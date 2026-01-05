@@ -4,5 +4,6 @@ func main() {
 	// StackExample()
 	// PanicExample()
 	// SorterExample()
-	InterExample()
+	// InterExample()
+	ChannelExample()
 }
