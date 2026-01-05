@@ -9,6 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -18,8 +22,12 @@ const (
 )
 
 var (
-	store     *TaskStore
-	taskQueue chan string
+	store          *TaskStore
+	taskQueue      chan string
+	tasksProcessed = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "tasks_processed_total",
+		Help: "The total number of processed tasks",
+	})
 )
 
 const MAX_WORKERS = 3
@@ -41,6 +49,7 @@ func Work(id int, que chan string, s *TaskStore) {
 		s.Update(taskId, RUNNING)
 		time.Sleep(2 * time.Second)
 		s.Update(taskId, COMPLETED)
+		tasksProcessed.Inc()
 		fmt.Printf("TaskId: %s completed by worker WorkerId: %d\n", taskId, id)
 	}
 }
@@ -55,6 +64,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/task", TasksHandler)
+	mux.Handle("/metrics", promhttp.Handler())
 
 	server := &http.Server{
 		Handler: mux,
